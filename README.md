@@ -6,7 +6,7 @@ A lightweight, fast TCP port scanner in Go. Designed for readability and speed, 
 - Concurrent TCP connect scanning with configurable worker pool
 - Flexible port selection: `top:N` or ranges like `1-1024,80,443`
 - Multiple targets: comma-separated hosts or IPv4 CIDR expansion
-- Human-readable table output or JSON
+- Human-readable, colorized table output (auto-enabled on TTY) or JSON
 
 ## Install
 ```bash
@@ -32,8 +32,15 @@ go build -o portscan .
 
 # Tune workers and timeout
 ./portscan -hosts example.com -ports top:100 -workers 800 -timeout 300ms
+
+# Colorized output
+# Table output uses ANSI colors when writing to a terminal.
+# Colors are automatically disabled when output is redirected to a file.
+# Example with file output:
+./portscan -hosts 127.0.0.1 -ports top:50 -o scan.txt
 ```
 
 ## Notes
 - This uses standard TCP connect scans (no raw SYN), so it runs without special privileges.
 - Timeouts and worker pool size significantly impact speed and accuracy; adjust based on network conditions.
+ - Colorized output is only applied when printing to an interactive terminal.
