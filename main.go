@@ -10,98 +10,14 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
+
+	"portscanner-go/internal/output"
+	"portscanner-go/internal/ports"
+	"portscanner-go/internal/scanner"
 )
 
-type Result struct {
-	Host    string        `json:"host"`
-	Port    int           `json:"port"`
-	Open    bool          `json:"open"`
-	Latency time.Duration `json:"latency_ms"`
-	Err     string        `json:"error,omitempty"`
-}
-
-func ScanHostPorts(host string, ports []int, timeout time.Duration, workers int) []Result {
-	if workers <= 0 {
-		workers = 100
-	}
-	jobs := make(chan int)
-	results := make(chan Result)
-
-	var wg sync.WaitGroup
-	wg.Add(workers)
-	for i := 0; i < workers; i++ {
-		go func() {
-			defer wg.Done()
-			for p := range jobs {
-				start := time.Now()
-				addr := net.JoinHostPort(host, fmt.Sprintf("%d", p))
-				conn, err := net.DialTimeout("tcp", addr, timeout)
-				lat := time.Since(start)
-				if err == nil {
-					_ = conn.Close()
-					results <- Result{Host: host, Port: p, Open: true, Latency: lat}
-				} else {
-					results <- Result{Host: host, Port: p, Open: false, Latency: lat, Err: err.Error()}
-				}
-			}
-		}()
-	}
-
-	go func() {
-		for _, p := range ports {
-			jobs <- p
-		}
-		close(jobs)
-		wg.Wait()
-		close(results)
-	}()
-
-	out := make([]Result, 0, len(ports))
-	for r := range results {
-		out = append(out, r)
-	}
-
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Host == out[j].Host {
-			return out[i].Port < out[j].Port
-		}
-		return out[i].Host < out[j].Host
-	})
-	return out
-}
-
-func PrintTable(results []Result) {
-	if len(results) == 0 {
-		fmt.Println("No results.")
-		return
-	}
-	byHost := map[string][]Result{}
-	for _, r := range results {
-		byHost[r.Host] = append(byHost[r.Host], r)
-	}
-	hosts := make([]string, 0, len(byHost))
-	for h := range byHost {
-		hosts = append(hosts, h)
-	}
-	sort.Strings(hosts)
-	for _, h := range hosts {
-		fmt.Printf("Host: %s\n", h)
-		fmt.Println("PORT  STATE   LATENCY")
-		fmt.Println("----  ------  --------")
-		ports := byHost[h]
-		sort.Slice(ports, func(i, j int) bool { return ports[i].Port < ports[j].Port })
-		for _, r := range ports {
-			state := "closed"
-			if r.Open {
-				state = "open"
-			}
-			fmt.Printf("%-5d %-7s %6.2fms\n", r.Port, state, float64(r.Latency.Microseconds())/1000.0)
-		}
-		fmt.Println()
-	}
-}
+// scanner, output, and top ports moved to internal packages
 
 func parsePorts(spec string) ([]int, error) {
 	if spec == "" || strings.HasPrefix(spec, "top:") {
@@ -116,7 +32,7 @@ func parsePorts(spec string) ([]int, error) {
 				n = parsed
 			}
 		}
-		return Top(n), nil
+		return ports.Top(n), nil
 	}
 
 	set := map[int]struct{}{}
@@ -242,11 +158,11 @@ func main() {
 		workers = 100
 	}
 
-	allResults := []Result{}
+	allResults := []scanner.Result{}
 	for _, h := range hosts {
-		results := ScanHostPorts(h, portsList, timeout, workers)
+		results := scanner.ScanHostPorts(h, portsList, timeout, workers)
 		if !includeClosed {
-			filtered := make([]Result, 0, len(results))
+			filtered := make([]scanner.Result, 0, len(results))
 			for _, r := range results {
 				if r.Open {
 					filtered = append(filtered, r)
@@ -264,25 +180,7 @@ func main() {
 		return
 	}
 
-	PrintTable(allResults)
+	output.PrintTable(allResults)
 }
 
-func Top(n int) []int {
-	if n <= 0 {
-		n = 1
-	}
-	list := []int{
-		80, 443, 22, 21, 25, 53, 110, 995, 143, 993,
-		587, 3306, 3389, 135, 139, 445, 8080, 8443, 5900, 23,
-		8000, 1723, 111, 123, 500, 1433, 1521, 5432, 6379, 27017,
-		11211, 389, 636, 554, 1720, 5060, 5061, 88, 1900, 5353,
-		49152, 49153, 49154, 49155, 1025, 1026, 1027, 1028, 69, 161,
-		162, 5000, 5001, 5985, 8081, 8082, 8083, 8444, 9000, 9090,
-		3128, 1080, 6667, 7001, 7002, 8181, 8888, 8883, 2181, 2049,
-		4190, 10000, 25565, 25575, 5901, 5902, 5903, 465, 9200, 25,
-	}
-	if n >= len(list) {
-		return list
-	}
-	return list[:n]
-}
+// Top() now provided by internal/ports
