@@ -93,25 +93,29 @@ func PrintTable(w io.Writer, results []scanner.Result) {
 					latStr = colorize(true, ansiRed, latStr)
 				}
 			}
-			svc := r.Service
-			detail := r.Fingerprint
+			// Build service line from parts to avoid extra spaces
+			svc := strings.TrimSpace(r.Service)
+			detail := strings.TrimSpace(r.Fingerprint)
 			if detail == "" {
-				detail = r.Banner
+				detail = strings.TrimSpace(r.Banner)
 			}
-			line := svc
-			if detail != "" {
-				if line != "" {
-					line += " " + detail
+			parts := []string{}
+			if svc != "" {
+				if useColor {
+					parts = append(parts, colorize(true, ansiBlue, svc))
 				} else {
-					line = detail
+					parts = append(parts, svc)
 				}
 			}
-			if useColor && svc != "" {
-				line = colorize(true, ansiBlue, svc) + " " + colorize(true, ansiDim, strings.TrimSpace(detail))
-			} else if useColor && detail != "" {
-				line = colorize(true, ansiDim, strings.TrimSpace(detail))
+			if detail != "" {
+				if useColor {
+					parts = append(parts, colorize(true, ansiDim, detail))
+				} else {
+					parts = append(parts, detail)
+				}
 			}
-			fmt.Fprintf(w, "%-5d %-7s %8s  %s\n", r.Port, stateStr, latStr, strings.TrimSpace(line))
+			line := strings.Join(parts, " ")
+			fmt.Fprintf(w, "%-5d %-7s %8s  %s\n", r.Port, stateStr, latStr, line)
 		}
 		fmt.Fprintln(w)
 	}

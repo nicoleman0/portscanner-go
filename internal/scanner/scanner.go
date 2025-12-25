@@ -45,6 +45,10 @@ func ScanHostPorts(host string, ports []int, timeout time.Duration, workers int,
 					if probe {
 						service, banner, fp = fingerprintService(host, p, conn, timeout)
 					}
+					// Fallback to known service name if detection didn't yield one
+					if service == "" {
+						service = knownServiceForPort(p)
+					}
 					_ = conn.Close()
 					results <- Result{Host: host, Port: p, Open: true, Latency: lat, Service: service, Banner: banner, Fingerprint: fp}
 				} else {
@@ -289,4 +293,114 @@ func tlsProbe(host string, baseConn net.Conn, timeout time.Duration, port int) (
 		}
 	}
 	return svc, "", fp
+}
+
+// knownServiceForPort returns a best-effort service name for common ports.
+func knownServiceForPort(p int) string {
+	switch p {
+	case 1:
+		return "tcpmux"
+	case 7:
+		return "echo"
+	case 13:
+		return "daytime"
+	case 19:
+		return "chargen"
+	case 20:
+		return "ftp-data"
+	case 21:
+		return "ftp"
+	case 22:
+		return "ssh"
+	case 23:
+		return "telnet"
+	case 25:
+		return "smtp"
+	case 53:
+		return "dns"
+	case 67:
+		return "dhcp-server"
+	case 68:
+		return "dhcp-client"
+	case 69:
+		return "tftp"
+	case 80:
+		return "http"
+	case 110:
+		return "pop3"
+	case 111:
+		return "rpcbind"
+	case 123:
+		return "ntp"
+	case 135:
+		return "msrpc"
+	case 139:
+		return "netbios-ssn"
+	case 143:
+		return "imap"
+	case 161:
+		return "snmp"
+	case 162:
+		return "snmp-trap"
+	case 389:
+		return "ldap"
+	case 443:
+		return "https"
+	case 445:
+		return "smb"
+	case 465:
+		return "smtps"
+	case 500:
+		return "isakmp"
+	case 587:
+		return "submission"
+	case 631:
+		return "ipp"
+	case 993:
+		return "imaps"
+	case 995:
+		return "pop3s"
+	case 1433:
+		return "mssql"
+	case 1521:
+		return "oracle"
+	case 1723:
+		return "pptp"
+	case 2049:
+		return "nfs"
+	case 2181:
+		return "zookeeper"
+	case 3128:
+		return "proxy"
+	case 3306:
+		return "mysql"
+	case 3389:
+		return "rdp"
+	case 5432:
+		return "postgresql"
+	case 5900:
+		return "vnc"
+	case 6379:
+		return "redis"
+	case 7001:
+		return "http-alt"
+	case 8080:
+		return "http-alt"
+	case 8443:
+		return "https-alt"
+	case 8888:
+		return "http-alt"
+	case 9000:
+		return "http-alt"
+	case 9090:
+		return "http-alt"
+	case 9200:
+		return "elasticsearch"
+	case 27017:
+		return "mongodb"
+	case 11211:
+		return "memcached"
+	default:
+		return ""
+	}
 }
