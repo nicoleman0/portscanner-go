@@ -1,6 +1,6 @@
 # portscanner-go
 
-A lightweight, fast TCP port scanner in Go. Designed for readability and speed, with simple CLI flags and clean table/JSON results.
+Lightweight and fast TCP port scanner written in Go. Designed for readability and speed, with simple CLI flags and clean table/JSON results.
 
 ## Features
 - Concurrent TCP connect scanning with configurable worker pool
