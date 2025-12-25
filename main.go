@@ -130,6 +130,8 @@ func main() {
 	var workers int
 	var jsonOut bool
 	var includeClosed bool
+	var probeService bool
+	var outFile string
 
 	flag.StringVar(&hostsSpec, "hosts", "", "Target hosts: comma-separated or CIDR (IPv4)")
 	flag.StringVar(&portsSpec, "ports", "top:100", "Ports: e.g. 'top:100' or '1-1024,80,443'")
@@ -137,6 +139,8 @@ func main() {
 	flag.IntVar(&workers, "workers", 500, "Concurrent workers")
 	flag.BoolVar(&jsonOut, "json", false, "Output JSON")
 	flag.BoolVar(&includeClosed, "all", false, "Include closed ports in output")
+	flag.BoolVar(&probeService, "service", false, "Probe service banners on open ports")
+	flag.StringVar(&outFile, "o", "", "Write output to file (JSON if -json, else table)")
 	flag.Parse()
 
 	hosts, err := expandHosts(hostsSpec)
@@ -160,7 +164,7 @@ func main() {
 
 	allResults := []scanner.Result{}
 	for _, h := range hosts {
-		results := scanner.ScanHostPorts(h, portsList, timeout, workers)
+		results := scanner.ScanHostPorts(h, portsList, timeout, workers, probeService)
 		if !includeClosed {
 			filtered := make([]scanner.Result, 0, len(results))
 			for _, r := range results {
@@ -177,10 +181,25 @@ func main() {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		_ = enc.Encode(allResults)
+		if outFile != "" {
+			f, err := os.Create(outFile)
+			if err == nil {
+				defer f.Close()
+				enc2 := json.NewEncoder(f)
+				enc2.SetIndent("", "  ")
+				_ = enc2.Encode(allResults)
+			}
+		}
 		return
 	}
 
-	output.PrintTable(allResults)
+	output.PrintTable(os.Stdout, allResults)
+	if outFile != "" {
+		if f, err := os.Create(outFile); err == nil {
+			defer f.Close()
+			output.PrintTable(f, allResults)
+		}
+	}
 }
 
 // Top() now provided by internal/ports

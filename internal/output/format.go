@@ -2,14 +2,15 @@ package output
 
 import (
 	"fmt"
+	"io"
 	"sort"
 
 	"portscanner-go/internal/scanner"
 )
 
-func PrintTable(results []scanner.Result) {
+func PrintTable(w io.Writer, results []scanner.Result) {
 	if len(results) == 0 {
-		fmt.Println("No results.")
+		fmt.Fprintln(w, "No results.")
 		return
 	}
 	byHost := map[string][]scanner.Result{}
@@ -22,9 +23,9 @@ func PrintTable(results []scanner.Result) {
 	}
 	sort.Strings(hosts)
 	for _, h := range hosts {
-		fmt.Printf("Host: %s\n", h)
-		fmt.Println("PORT  STATE   LATENCY")
-		fmt.Println("----  ------  --------")
+		fmt.Fprintf(w, "Host: %s\n", h)
+		fmt.Fprintln(w, "PORT  STATE   LATENCY  SERVICE")
+		fmt.Fprintln(w, "----  ------  --------  ------------------------------")
 		ports := byHost[h]
 		sort.Slice(ports, func(i, j int) bool { return ports[i].Port < ports[j].Port })
 		for _, r := range ports {
@@ -32,8 +33,8 @@ func PrintTable(results []scanner.Result) {
 			if r.Open {
 				state = "open"
 			}
-			fmt.Printf("%-5d %-7s %6.2fms\n", r.Port, state, float64(r.Latency.Microseconds())/1000.0)
+			fmt.Fprintf(w, "%-5d %-7s %6.2fms  %s\n", r.Port, state, float64(r.Latency.Microseconds())/1000.0, r.Banner)
 		}
-		fmt.Println()
+		fmt.Fprintln(w)
 	}
 }
