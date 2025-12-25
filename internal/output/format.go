@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"portscanner-go/internal/scanner"
@@ -92,13 +93,25 @@ func PrintTable(w io.Writer, results []scanner.Result) {
 					latStr = colorize(true, ansiRed, latStr)
 				}
 			}
-			banner := r.Banner
-			if banner == "" {
-				banner = ""
-			} else if useColor {
-				banner = colorize(true, ansiDim, banner)
+			svc := r.Service
+			detail := r.Fingerprint
+			if detail == "" {
+				detail = r.Banner
 			}
-			fmt.Fprintf(w, "%-5d %-7s %8s  %s\n", r.Port, stateStr, latStr, banner)
+			line := svc
+			if detail != "" {
+				if line != "" {
+					line += " " + detail
+				} else {
+					line = detail
+				}
+			}
+			if useColor && svc != "" {
+				line = colorize(true, ansiBlue, svc) + " " + colorize(true, ansiDim, strings.TrimSpace(detail))
+			} else if useColor && detail != "" {
+				line = colorize(true, ansiDim, strings.TrimSpace(detail))
+			}
+			fmt.Fprintf(w, "%-5d %-7s %8s  %s\n", r.Port, stateStr, latStr, strings.TrimSpace(line))
 		}
 		fmt.Fprintln(w)
 	}

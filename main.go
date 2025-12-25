@@ -134,7 +134,7 @@ func main() {
 	var outFile string
 
 	flag.StringVar(&hostsSpec, "hosts", "", "Target hosts: comma-separated or CIDR (IPv4)")
-	flag.StringVar(&portsSpec, "ports", "top:100", "Ports: e.g. 'top:100' or '1-1024,80,443'")
+	flag.StringVar(&portsSpec, "ports", "top:1000", "Ports: e.g. 'top:1000' or '1-1024,80,443'")
 	flag.StringVar(&timeoutStr, "timeout", "500ms", "Dial timeout per port, e.g. 500ms, 1s")
 	flag.IntVar(&workers, "workers", 500, "Concurrent workers")
 	flag.BoolVar(&jsonOut, "json", false, "Output JSON")
